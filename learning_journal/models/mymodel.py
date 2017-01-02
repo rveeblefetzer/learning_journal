@@ -13,9 +13,7 @@ class Entry(Base):
     id = Column(Integer, primary_key=True)
     title = Column(Unicode)
     body = Column(Unicode)
-    # creation_date
-    # name = Column(Text)
-    # value = Column(Integer)
+    creation_date = Column(Unicode)
 
 
 Index('my_index', Entry.title, unique=True, mysql_length=255)
