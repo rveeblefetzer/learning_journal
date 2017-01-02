@@ -17,6 +17,14 @@ from ..models import (
     )
 from ..models import Entry
 
+ENTRIES = [
+        {"id": 5, "title": "Moving on and building", "creation_date": "12/29/2016", "body": "Wrapping this, and getting ready for databases."},
+        {"id": 4, "title": "Letting it jell.", "creation_date": "12/28/2016", "body": "Making it solid."},
+        {"id": 3, "title": "Getting it together.", "creation_date": "12/27/2016", "body": "Making headway with Pyramid."},
+        {"id": 2, "title": "Spending the time.", "creation_date": "12/26/2016", "body": "Reading, and doing."},
+        {"id": 1, "title": "'Drinking from a firehose'", "creation_date": "12/25/2016", "body": "After faceplanting on servers, here's Pyramid."},
+    ]
+
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
@@ -32,6 +40,8 @@ def main(argv=sys.argv):
     options = parse_vars(argv[2:])
     setup_logging(config_uri)
     settings = get_appsettings(config_uri, options=options)
+    settings["sqlalchemy.url"] = os.environ["DATABASE_URL"]
+
 
     engine = get_engine(settings)
     Base.metadata.create_all(engine)
@@ -40,6 +50,7 @@ def main(argv=sys.argv):
 
     with transaction.manager:
         dbsession = get_tm_session(session_factory, transaction.manager)
+        for entry in ENTRIES:
+            new_entry = Entry(title=entry['title'], body=entry['body'], creation_date=entry['creation_date'], id=entry['id'])
 
-        model = Entry(title='First Entry', body='This is the body.')
-        dbsession.add(model)
+        dbsession.add(new_entry)

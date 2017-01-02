@@ -94,3 +94,7 @@ pyvenv.cfg
 lib64
 pip-selfcheck.json
 share
+
+# Miscellaneous
+.DS_Store
+*.sqlite

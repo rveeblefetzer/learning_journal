@@ -1,0 +1,41 @@
+{% extends "layout.jinja2" %}
+{% block title %}a post from rickv's learning journal.{% endblock %}
+
+{% block header %}
+<header  class="intro-header" style="background-image: url('{{ request.static_path('learning_journal:static/img/post-bg.jpg') }}')">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="site-heading">
+                    <h1>Journal Entry:</h1>
+                    <hr class="small">
+                    <span class="subheading">The what and the how of the day.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    </header>
+
+{% endblock %}
+
+{% block body %}
+    <article>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <section class="detail-journal-entry">
+                        <h1 class="detail-title">{{ entry.title }}</h1>
+                            <article class="detail-body">{{ entry.body }}</article>
+                            <div class="detail-date">Posted on {{ entry.creation_date }}</div>
+                            <p class="text-right">
+                            <a href="{{ request.route_url('edit', id=entry.id) }}">
+                                Edit entry
+                            </a>
+                            </p><hr>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+    </article>
+{% endblock %}
