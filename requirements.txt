@@ -6,8 +6,6 @@ decorator==4.0.10
 ipython==5.1.0
 ipython-genutils==0.1.0
 Jinja2==2.8
--e git+https://github.com/rveeblefetzer/learning_journal@e6bb2efd0f8577d7528dcc114c1024920dc69f9e#egg=learning_journal
--e git+https://github.com/rveeblefetzer/learning-journal-basic.git@ac7deea64e8508f3611cf4c53bc5908b2328c4b1#egg=learning_journal_basic
 Mako==1.0.6
 MarkupSafe==0.23
 PasteDeploy==1.5.2
