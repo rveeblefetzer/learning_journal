@@ -97,4 +97,4 @@ share
 
 # Miscellaneous
 .DS_Store
-*.sqlite
+.sqlite
