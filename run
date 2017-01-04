@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 python setup.py develop
-# initialize_db production.ini <-- reverting. this didn't fix deployment problem.
+initialize_db production.ini
 python runapp.py
