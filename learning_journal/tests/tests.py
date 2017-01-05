@@ -89,6 +89,15 @@ def add_posts(dummy_request):
             post = Entry(id=entry['id'], title=entry['title'], body=entry['body'], creation_date=entry['creation_date'])
             dummy_request.dbsession.add(post)
 
+
+@pytest.fixture
+def testapp():
+    """Create an instance of our app for testing."""
+    from webtest import TestApp
+    from learning_journal import main
+    app = main({})
+    return TestApp(app)
+
 """Tests:"""
 
 
@@ -99,35 +108,10 @@ def test_model_gets_added(db_session, add_posts):
         creation_date="test time!", id="8675309")
     db_session.add(model)
     assert len(db_session.query(Entry).all()) == 6
-#
-
-# def test_homepage_response(add_posts):
-#     """Test that homepage request gets OK response code 200."""
-#     assert request.response.status = 200
 
 
-
-# class TestMyViewSuccessCondition(BaseTest):
-
-#     def setUp(self):
-#         super(TestMyViewSuccessCondition, self).setUp()
-#         self.init_database()
-
-#         from .models import MyModel
-
-#         model = MyModel(name='one', value=55)
-#         self.session.add(model)
-
-#     def test_passing_view(self):
-#         from .views.default import my_view
-#         info = my_view(dummy_request(self.session))
-#         self.assertEqual(info['one'].name, 'one')
-#         self.assertEqual(info['project'], 'learning_journal')
-
-
-# class TestMyViewFailureCondition(BaseTest):
-
-#     def test_failing_view(self):
-#         from .views.default import my_view
-#         info = my_view(dummy_request(self.session))
-#         self.assertEqual(info.status_int, 500)
+def test_edit_view_has_entry(testapp):
+    """Test that the edit view has a form on it."""
+    response = testapp.get('/', status=200)
+    body = response.html
+    assert ENTRIES[0]["body"] in body
