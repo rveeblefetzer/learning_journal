@@ -25,8 +25,7 @@ def write(request):
         new_title = request.POST["title"]
         new_body = request.POST["body"]
         new_date = time.strftime("%m/%d/%Y")
-        new_id = request.POST['id']
-        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date, id=new_id)
+        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
 
         request.dbsession.add(new_entry)
 
@@ -53,8 +52,9 @@ def edit(request):
             creation_date = time.strftime("%m/%d/%Y")
             query = request.dbsession.query(Entry)
             post_dict = query.filter(Entry.id == request.matchdict['id'])
-            post_dict.update({'title': title, 'body': body, 'creation_date': creation_date,})
-            return HTTPFound(location=request.route_url('homepage'))
+            post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})
+            if not request.test:
+                return HTTPFound(location=request.route_url('homepage'))
         return {'entries': data}
     except DBAPIError:
         return Response(db_err_msg, content_type='text/plain', status=500)
