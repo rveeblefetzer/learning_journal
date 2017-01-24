@@ -112,6 +112,7 @@ def test_model_gets_added(db_session, add_posts):
 
 def test_edit_view_has_entry(testapp):
     """Test that the edit view has a form on it."""
-    response = testapp.get('/', status=200)
-    body = response.html
+    response = testapp.get('/journal/1/editentry', status=200)
+    import pdb; pdb.set_trace()
+    body = response.html.find_all(class_='edit-journal-entry')[0].getText()
     assert ENTRIES[0]["body"] in body
