@@ -2,6 +2,11 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import exception_response
+from pyramid.security import remember, forget
+from learning_journal.security import check_credentials
+from pyramid.security import NO_PERMISSION_REQUIRED
+
+
 import time
 
 from sqlalchemy.exc import DBAPIError
@@ -9,7 +14,26 @@ from sqlalchemy.exc import DBAPIError
 from ..models import Entry
 
 
-@view_config(route_name='homepage', renderer='../templates/index.jinja2')
+@view_config(route_name='login', renderer='../templates/login.jinja2', permission=NO_PERMISSION_REQUIRED)
+def login_view(request):
+    """Handle the login view."""
+    if request.method == 'POST':
+        username = request.params.get('username', '')
+        password = request.params.get('password', '')
+        if check_credentials(username, password):
+            headers = remember(request, username)
+            return HTTPFound(location=request.route_url('homepage'), headers=headers)
+    return {}
+
+
+@view_config(route_name='logout')
+def logout_view(request):
+    """Handle logging the user out."""
+    headers = forget(request)
+    return HTTPFound(request.route_url("home"), headers=headers)
+
+
+@view_config(route_name='homepage', renderer='../templates/index.jinja2', permission=NO_PERMISSION_REQUIRED)
 def my_view(request):
     """View for homepage, listing journal entries from database."""
     try:
@@ -19,7 +43,7 @@ def my_view(request):
     return {'entries': entries}
 
 
-@view_config(route_name="write", renderer="../templates/write.jinja2")
+@view_config(route_name="write", renderer="../templates/write.jinja2", permission="author")
 def write(request):
     if request.method == "POST":
         new_title = request.POST["title"]
@@ -34,7 +58,7 @@ def write(request):
     return {}
 
 
-@view_config(route_name="detail", renderer="../templates/entry.jinja2")
+@view_config(route_name="detail", renderer="../templates/entry.jinja2",  permission=NO_PERMISSION_REQUIRED)
 def detail(request):
     """VIew for individual entry."""
     query = request.dbsession.query(Entry)
@@ -42,7 +66,7 @@ def detail(request):
     return {"entry": the_entry}
 
 
-@view_config(route_name="edit", renderer="../templates/editentry.jinja2")
+@view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="author")
 def edit(request):
     """View for page for editing entries, displaying a form."""
     try:
