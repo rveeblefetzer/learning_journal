@@ -61,11 +61,11 @@ def edit(request):
     query = request.dbsession.query(Entry)
     post_dict = query.filter(Entry.id == request.matchdict['id']).first()
     if post_dict is not None:
-        a = {
+        edited_post = {
             'title': post_dict.title,
             'creation_date': post_dict.creation_date,
             'body': post_dict.body}
-        return {'post': a}
+        return {'post': edited_post}
     raise exception_response(404)
 
 
