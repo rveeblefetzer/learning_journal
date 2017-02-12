@@ -19,7 +19,7 @@ requires = [
     'transaction',
     'zope.sqlalchemy',
     'waitress',
-    ]
+]
 
 setup(name='learning_journal',
       version='0.0',
@@ -38,9 +38,6 @@ setup(name='learning_journal',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      extras_require={
-          'testing': tests_require,
-      },
       install_requires=requires,
       entry_points="""\
       [paste.app_factory]
