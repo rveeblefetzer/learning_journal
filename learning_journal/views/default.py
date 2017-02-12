@@ -57,15 +57,15 @@ def edit(request):
         return {'entries': data}
     except DBAPIError:
         return Response(db_err_msg, content_type='text/plain', status=500)
-    query = request.dbsession.query(Entry)
-    post_dict = query.filter(Entry.id == request.matchdict['id']).first()
-    if post_dict is not None:
-        edited_post = {
-            'title': post_dict.title,
-            'creation_date': post_dict.creation_date,
-            'body': post_dict.body}
-        return {'post': edited_post}
-    raise exception_response(404)
+    # query = request.dbsession.query(Entry)
+    # post_dict = query.filter(Entry.id == request.matchdict['id']).first()
+    # if post_dict is not None:
+    #     edited_post = {
+    #         'title': post_dict.title,
+    #         'creation_date': post_dict.creation_date,
+    #         'body': post_dict.body}
+    #     return {'post': edited_post}
+    # raise exception_response(404)
 
 
 db_err_msg = """\

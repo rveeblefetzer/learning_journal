@@ -74,7 +74,7 @@ def test_database_empty_but_exists(db_session):
 
 
 def test_my_view(dummy_request):
-    """Test the homepage view return data from database."""
+    """Test the homepage view returns data from database."""
     from .views.default import my_view
     dummy_request.dbsession.add(Entry(title="one", id='1'))
     result = my_view(dummy_request) # views commit changes to the DB
@@ -97,36 +97,12 @@ def test_write_view(dummy_request, db_session):
 def test_detail_view(dummy_request, db_session):
     """Test the detail view."""
     from .views.default import detail
-    # dummy_request.method = "POST"
-    # dummy_request.POST["title"] = "This is a Title"
-    # dummy_request.POST["body"] = "And this is the body. TEST!"
+    dummy_request.method = "POST"
+    dummy_request.POST["title"] = "This is a Title"
+    dummy_request.POST["body"] = "And this is the body. TEST!"
     dummy_request.matchdict['id'] = '1'
     result = detail(dummy_request)
     entry = dummy_request.dbsession.query(Entry).get(1)
     assert result['entry'] == entry
 
 
-def test_edit_view(dummy_request):
-    """Test the edit view."""
-    from .views.default import edit
-
-    # 1. Create a new model instance and add to the database
-    # 2. Modify the dummy request to be a POST request with data for the title and body for editing the above entry
-    # 3. Send that request to the view
-    # 4. Assert that your change took place
-
-    test_model = Entry(title='Edit view test', body='We test the edit view.',
-        creation_date='01/06/2017')
-    dummy_request.dbsession.add(test_model)
-
-    query = dummy_request.dbsession.query(Entry)
-    dummy_request.method = "POST"
-    dummy_request.matchdict["id"] = "1"
-    dummy_request.POST["title"] = "Fresh title"
-    dummy_request.POST["body"] = "Fresh body"
-    dummy_request.test = True
-
-    edit(dummy_request)
-
-    this_entry = query.get(1)
-    assert this_entry.body == "Fresh body"
