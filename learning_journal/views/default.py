@@ -53,8 +53,7 @@ def edit(request):
             query = request.dbsession.query(Entry)
             post_dict = query.filter(Entry.id == request.matchdict['id'])
             post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})
-            if not request.test:
-                return HTTPFound(location=request.route_url('homepage'))
+            return HTTPFound(location=request.route_url('homepage'))
         return {'entries': data}
     except DBAPIError:
         return Response(db_err_msg, content_type='text/plain', status=500)
