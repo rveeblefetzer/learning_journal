@@ -54,3 +54,4 @@ def main(argv=sys.argv):
             new_entry = Entry(title=entry['title'], body=entry['body'], creation_date=entry['creation_date'], id=entry['id'])
 
         dbsession.add(new_entry)
+

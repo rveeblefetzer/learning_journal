@@ -1,16 +1,16 @@
-"""Tests for learning journal app, built with Pyramid and Postgres."""
-
 import pytest
 import transaction
-from pyramid import testing
-from pyramid.config import Configurator
 import time
+from pyramid import testing
 
 from learning_journal.models import (
     Entry,
     get_tm_session,
 )
 from learning_journal.models.meta import Base
+from learning_journal.scripts.initializedb import ENTRIES
+from pyramid.config import Configurator
+import time
 
 TEST_ENTRIES = [
     {'title': "Test 1",
@@ -78,11 +78,6 @@ def db_session(configuration, request):
 
 
 @pytest.fixture
-def dummy_request(db_session):
-    return testing.DummyRequest(dbsession=db_session)
-
-
-@pytest.fixture
 def add_posts(dummy_request):
     """Add multiple entries to the database."""
     for entry in TEST_ENTRIES:
@@ -90,16 +85,58 @@ def add_posts(dummy_request):
             dummy_request.dbsession.add(post)
 
 
+MODEL_ENTRIES = [Entry(
+    title=entry['title'],
+    body=entry['body'],
+    creation_date=entry['creation_date']
+) for entry in ENTRIES]
+
+
+@pytest.fixture
+def dummy_request(db_session, method="GET"):
+    """Instantitate an HTTP request and database session for testing"""
+    request = testing.DummyRequest()
+    request.method = method
+    request.dbsession = db_session
+    return request
+
 @pytest.fixture
 def testapp():
-    """Create an instance of our app for testing."""
+    """Create an app instance for testing."""
     from webtest import TestApp
     from learning_journal import main
     app = main({})
     return TestApp(app)
 
-"""Tests:"""
 
+@pytest.fixture
+def fill_the_db(testapp):
+    """Fill database with journal entries."""
+    SessionFactory = testapp.app.registry["dbsession_factory"]
+    with transaction.manager:
+        dbsession = get_tm_session(SessionFactory, transaction.manager)
+        for entry in ENTRIES:
+            row = Entry(title=entry["title"], creation_date=entry["creation_date"], body=entry["body"])
+            dbsession.add(row)
+
+def test_database_empty_but_exists(db_session):
+    """Test that app connects to database, which is empty here."""
+    assert len(db_session.query(Entry).all()) == 0
+
+def test_my_view(dummy_request):
+    """Test the homepage view return data from database."""
+    from learning_journal.views.default import my_view
+    dummy_request.dbsession.add(Entry(title="one", id='1'))
+    result = my_view(dummy_request) # views commit changes to the DB
+    assert result["entries"][0].title == "one"
+
+def test_detail_view(dummy_request, db_session):
+    """Test the detail view."""
+    from learning_journal.views.default import detail
+    dummy_request.matchdict['id'] = '1'
+    result = detail(dummy_request)
+    entry = dummy_request.dbsession.query(Entry).get(1)
+    assert result['entry'] == entry
 
 def test_model_gets_added(db_session, add_posts):
     """Test the model gets added to the database."""
@@ -108,11 +145,3 @@ def test_model_gets_added(db_session, add_posts):
         creation_date="test time!", id="8675309")
     db_session.add(model)
     assert len(db_session.query(Entry).all()) == 6
-
-
-def test_edit_view_has_entry(testapp):
-    """Test that the edit view has a form on it."""
-    response = testapp.get('/journal/1/editentry', status=200)
-    import pdb; pdb.set_trace()
-    body = response.html.find_all(class_='edit-journal-entry')[0].getText()
-    assert ENTRIES[0]["body"] in body

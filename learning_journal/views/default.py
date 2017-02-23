@@ -4,7 +4,6 @@ from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import exception_response
 from pyramid.security import remember, forget
 from learning_journal.security import check_credentials
-from pyramid.security import NO_PERMISSION_REQUIRED
 
 
 import time
@@ -14,15 +13,19 @@ from sqlalchemy.exc import DBAPIError
 from ..models import Entry
 
 
-@view_config(route_name='login', renderer='../templates/login.jinja2', permission=NO_PERMISSION_REQUIRED)
+@view_config(route_name='login', renderer='../templates/login.jinja2', permission="view")
 def login_view(request):
     """Handle the login view."""
-    if request.method == 'POST':
-        username = request.params.get('username', '')
-        password = request.params.get('password', '')
+    if request.POST:
+        username = request.POST["username"]
+        password = request.POST["password"]
         if check_credentials(username, password):
-            headers = remember(request, username)
-            return HTTPFound(location=request.route_url('homepage'), headers=headers)
+            auth_head = remember(request, username)
+            return HTTPFound(
+                location=request.route_url("homepage"),
+                headers=auth_head
+            )
+
     return {}
 
 
@@ -30,10 +33,10 @@ def login_view(request):
 def logout_view(request):
     """Handle logging the user out."""
     headers = forget(request)
-    return HTTPFound(request.route_url("home"), headers=headers)
+    return HTTPFound(request.route_url("homepage"), headers=headers)
 
 
-@view_config(route_name='homepage', renderer='../templates/index.jinja2', permission=NO_PERMISSION_REQUIRED)
+@view_config(route_name='homepage', renderer='../templates/index.jinja2', permission="view")
 def my_view(request):
     """View for homepage, listing journal entries from database."""
     try:
@@ -43,22 +46,19 @@ def my_view(request):
     return {'entries': entries}
 
 
-@view_config(route_name="write", renderer="../templates/write.jinja2", permission="author")
+@view_config(route_name="write", renderer="../templates/write.jinja2", permission="amend")
 def write(request):
     if request.method == "POST":
         new_title = request.POST["title"]
         new_body = request.POST["body"]
         new_date = time.strftime("%m/%d/%Y")
-        new_id = request.POST['id']
-        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date, id=new_id)
-
+        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
         request.dbsession.add(new_entry)
-
-        return {}
+        return HTTPFound(location=request.route_url('homepage'))
     return {}
 
 
-@view_config(route_name="detail", renderer="../templates/entry.jinja2",  permission=NO_PERMISSION_REQUIRED)
+@view_config(route_name="detail", renderer="../templates/entry.jinja2")
 def detail(request):
     """VIew for individual entry."""
     query = request.dbsession.query(Entry)
@@ -66,7 +66,7 @@ def detail(request):
     return {"entry": the_entry}
 
 
-@view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="author")
+@view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="amend")
 def edit(request):
     """View for page for editing entries, displaying a form."""
     try:
@@ -85,11 +85,11 @@ def edit(request):
     query = request.dbsession.query(Entry)
     post_dict = query.filter(Entry.id == request.matchdict['id']).first()
     if post_dict is not None:
-        a = {
+        edited_post = {
             'title': post_dict.title,
             'creation_date': post_dict.creation_date,
             'body': post_dict.body}
-        return {'post': a}
+        return {'post': edited_post}
     raise exception_response(404)
 
 

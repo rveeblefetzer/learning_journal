@@ -1,3 +1,5 @@
+from passlib.context import CryptContext
+
 from sqlalchemy import (
     Column,
     Index,
@@ -17,3 +19,4 @@ class Entry(Base):
 
 
 Index('my_index', Entry.title, unique=True, mysql_length=255)
+

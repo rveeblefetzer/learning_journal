@@ -11,8 +11,8 @@ class TheRoot(object):
         self.request = request
 
     __acl__ = [
-        (Allow, Authenticated, 'author'),
-        (Allow, Everyone, 'guest')
+        (Allow, Authenticated, 'amend'),
+        (Allow, Everyone, 'view'),
     ]
 
 
@@ -22,8 +22,7 @@ def check_credentials(username, password):
     stored_password = os.environ.get('AUTH_PASSWORD', '')
     is_authenticated = False
     if stored_username and stored_password:
-        # proceed to check credentials
-        if stored_username:
+        if username == stored_username:
             try:
                 is_authenticated = pwd_context.verify(password, stored_password)
             except ValueError:
