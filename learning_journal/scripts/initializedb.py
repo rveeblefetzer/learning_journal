@@ -40,8 +40,8 @@ def main(argv=sys.argv):
     options = parse_vars(argv[2:])
     setup_logging(config_uri)
     settings = get_appsettings(config_uri, options=options)
-    #settings["sqlalchemy.url"] = 'sqlite:///%(here)s/learning_journal.sqlite'
-    # settings["sqlalchemy.url"] = os.environ["DATABASE_URL"]
+    settings["sqlalchemy.url"] = 'sqlite:///%(here)s/learning_journal.sqlite'
+    settings["sqlalchemy.url"] = os.environ["DATABASE_URL"]
 
 
     engine = get_engine(settings)

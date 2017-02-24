@@ -46,23 +46,19 @@ TEST_ENTRIES = [
 def configuration(request):
     """Set up a Configurator instance.
 
-<<<<<<< HEAD
     This Configurator instance sets up a pointer to the location of the
         database.
     It also includes the models from your app's model package.
     Finally it tears everything down, including the in-memory SQLite database.
 
-=======
     This Configurator sets up a pointer to the location of the database.
     It also includes the models from your app's model package.
     Finally it tears everything down, including the in-memory SQLite database.
->>>>>>> 93ae403f06e876f87419adeba2f1b4dcf6fcd0a7
     This configuration will persist for the entire duration of your PyTest run.
     """
     config = testing.setUp(settings={
         'sqlalchemy.url': 'sqlite:///:memory:'
     })
-<<<<<<< HEAD
     config.include(".models")
 
     def teardown():
@@ -112,19 +108,6 @@ def test_my_view(dummy_request):
     dummy_request.dbsession.add(Entry(title="one", id='1'))
     result = my_view(dummy_request) # views commit changes to the DB
     assert result["entries"][0].title == "one"
-
-
-def test_write_view(dummy_request, db_session):
-    """Test the write view writes to database."""
-    from .views.default import write
-    dummy_request.method = "POST"
-    dummy_request.POST["title"] = "This is a Title"
-    dummy_request.POST["body"] = "And this is the body. TEST!"
-
-    write(dummy_request)
-    query = db_session.query(Entry).all()
-    assert query[0].title == "This is a Title"
-    assert query[0].body == "And this is the body. TEST!"
 
 
 def test_detail_view(dummy_request, db_session):
