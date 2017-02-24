@@ -73,7 +73,6 @@ def db_session(configuration, request):
     def teardown():
         session.transaction.rollback()
 
-    request.addfinalizer(teardown)
     return session
 
 
@@ -101,12 +100,33 @@ def dummy_request(db_session, method="GET"):
     return request
 
 @pytest.fixture
-def testapp():
+def testapp(request):
     """Create an app instance for testing."""
     from webtest import TestApp
     from learning_journal import main
     app = main({})
-    return TestApp(app)
+    def main(global_config, **settings):
+        """Return a Pyramid WSGI application."""
+        config = Configurator(settings=settings)
+        config.include('pyramid_jinja2')
+        config.include('learning_journal.models')
+        config.include('learning_journal.routes')
+        config.include('learning_journal.security')
+        config.scan()
+        return config.make_wsgi_app()
+
+    testapp = TestApp(app)
+    session_factory = app.registry["dbsession_factory"]
+    session = session_factory()
+    engine = session.bind
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(bind=engine)
+
+    def tearDown():
+        Base.metadata.drop_all(engine)
+
+    request.addfinalizer(tearDown)
+    return testapp
 
 
 @pytest.fixture
@@ -116,8 +136,9 @@ def fill_the_db(testapp):
     with transaction.manager:
         dbsession = get_tm_session(SessionFactory, transaction.manager)
         for entry in ENTRIES:
-            row = Entry(title=entry["title"], creation_date=entry["creation_date"], body=entry["body"])
-            dbsession.add(row)
+            post = Entry(title=entry["title"], creation_date=entry["creation_date"], body=entry["body"])
+            dbsession.add(post)
+    return dbsession
 
 def test_database_empty_but_exists(db_session):
     """Test that app connects to database, which is empty here."""
@@ -138,10 +159,20 @@ def test_detail_view(dummy_request, db_session):
     entry = dummy_request.dbsession.query(Entry).get(1)
     assert result['entry'] == entry
 
-def test_model_gets_added(db_session, add_posts):
+def test_model_gets_added(db_session):
     """Test the model gets added to the database."""
-    assert len(db_session.query(Entry).all()) == 5
+    assert len(db_session.query(Entry).all()) == 1
     model = Entry(title="new title for new test", body="new body for new test",
         creation_date="test time!", id="8675309")
     db_session.add(model)
-    assert len(db_session.query(Entry).all()) == 6
+    assert len(db_session.query(Entry).all()) == 2
+
+def test_non_authenticated_user_cannot_access_write_view(testapp):
+    """Test that accessing create new post is forbidden without auth."""
+    response = testapp.get('/journal/write', status=403)
+    assert response.status_code == 403
+
+def test_non_authenticated_user_cannot_access_edit_view(testapp):
+    """Test that accessing create new post is forbidden without auth."""
+    response = testapp.get('/journal/1/editentry', status=403)
+    assert response.status_code == 403

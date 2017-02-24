@@ -21,6 +21,7 @@
     <main class="container">
         <div class="col-md-10">
             <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ request.session.get_csrf_token() }}" />
             <label>
               <input name="title" class="input_post_title" type="text" placeholder="Hed" required>
             </label>
