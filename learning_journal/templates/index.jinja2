@@ -27,7 +27,7 @@
     <section id="list-journal-entries-section-on-index">
         <h3>rickv's journal entries</h3>
         {% if entries %}
-        {%for entry in entries | sort(reverse=True, attribute="creation_date"%}
+        {%for entry in entries | sort(reverse=True, attribute="creation_date") %}
             <article>
 
               <h2><a href="{{ request.route_url('detail', id=entry.id) }}">{{ entry.title }}</a></h2>
