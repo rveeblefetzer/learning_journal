@@ -74,16 +74,20 @@ def detail(request):
 @view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="amend")
 def edit(request):
     """View for page for editing entries, displaying a form."""
-    data = request.dbsession.query(Entry).get(request.matchdict['id'])
-    if request.method == "POST":
-        title = request.POST['title']
-        body = request.POST['body']
-        creation_date = datetime.date.today()
-        query = request.dbsession.query(Entry)
-        post_dict = query.filter(Entry.id == request.matchdict['id'])
-        post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})
-        return HTTPFound(location=request.route_url('homepage'))
-    return {'entries': data}
+    the_id = request.matchdict["id"]
+    try:
+        entry = request.dbsession.query(Entry).get(the_id)
+        if request.method == "POST":
+            entry.title = request.POST["title"]
+            entry.creation_date = request.POST["creation_date"]
+            entry.body = request.POST["body"]
+
+            request.dbsession.flush()
+            return HTTPFound(request.route_url("hompage"))
+
+    except DBAPIError:
+        return Response(db_err_msg, content_type='text/plain', status=500)
+    return {"entry": entry}
 
 db_err_msg = """\
 Pyramid is having a problem using your SQL database.  The problem

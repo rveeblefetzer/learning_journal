@@ -12,13 +12,6 @@ from learning_journal.scripts.initializedb import ENTRIES
 from pyramid.config import Configurator
 import datetime
 
-MODEL_ENTRIES = [Entry(
-    title=entry['title'],
-    body=entry['body'],
-    creation_date=entry['creation_date']
-) for entry in ENTRIES]
-
-
 TEST_ENTRIES = [
     {'title': "Test 1",
      'body': 'Test body: first entry',
@@ -42,6 +35,7 @@ TEST_ENTRIES = [
      'id': 5},
 ]
 
+# Unit tests
 
 @pytest.fixture(scope="session")
 def configuration(request):
@@ -58,7 +52,7 @@ def configuration(request):
     This configuration will persist for the entire duration of your PyTest run.
     """
     config = testing.setUp(settings={
-        'sqlalchemy.url': 'sqlite:///:memory:'
+        'sqlalchemy.url': 'postgres://hotsauce@localhost:5432/learning_journal'
     })
     config.include(".models")
 
@@ -80,6 +74,7 @@ def db_session(configuration, request):
     SessionFactory = configuration.registry["dbsession_factory"]
     session = SessionFactory()
     engine = session.bind
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
     def teardown():
@@ -90,17 +85,37 @@ def db_session(configuration, request):
 
 
 @pytest.fixture
-def dummy_request(db_session, method="GET"):
-    """Instantitate an HTTP request and database session for testing"""
-    request = testing.DummyRequest()
-    request.method = method
-    request.dbsession = db_session
-    return request
+def dummy_request(db_session):
+    """Instantiate a fake HTTP Request, complete with a database session.
+    This is a function-level fixture, so every new request will have a
+    new database session.
+    """
+    return testing.DummyRequest(dbsession=db_session)
+
+
+@pytest.fixture
+def add_models(dummy_request):
+    """Add a bunch of model instances to the database.
+    Every test that includes this fixture will add new models
+     from the ENTRIES list.
+    """
+    for each in TEST_ENTRIES:
+        model = Entry(title=each["title"], creation_date=each["creation_date"], body=each["body"])
+        dummy_request.dbsession.add(model)
 
 
 def test_database_empty_but_exists(db_session):
     """Test that app connects to database, which is empty here."""
     assert len(db_session.query(Entry).all()) == 0
+
+
+def test_adding_model(db_session):
+    """Test the model gets added to the database."""
+    assert len(db_session.query(Entry).all()) == 0
+    model = Entry(title="new title for new test", body="new body for new test",
+        creation_date=datetime.datetime(2017, 1, 1, 0, 0), id="8675309")
+    db_session.add(model)
+    assert len(db_session.query(Entry).all()) == 1
 
 
 def test_my_view(dummy_request):
@@ -109,6 +124,19 @@ def test_my_view(dummy_request):
     dummy_request.dbsession.add(Entry(title="one", id='1'))
     result = my_view(dummy_request) # views commit changes to the DB
     assert result["entries"][0].title == "one"
+
+
+def test_homepage_returns_empty_when_empty(dummy_request):
+    """Test that the list view returns no objects in the expenses iterable."""
+    from learning_journal.views.default import my_view
+    result = my_view(dummy_request)
+    assert len(result["entries"]) == 0
+
+def test_homepage_returns_existing_entries(dummy_request, add_models):
+    """Test that the list view serves up journal entries."""
+    from learning_journal.views.default import my_view
+    result = my_view(dummy_request)
+    assert len(result["entries"]) == len(TEST_ENTRIES)
 
 
 def test_detail_view(dummy_request, db_session):
@@ -121,56 +149,52 @@ def test_detail_view(dummy_request, db_session):
     result = detail(dummy_request)
     entry = dummy_request.dbsession.query(Entry).get(1)
     assert result['entry'] == entry
-    config.include("learning_journal.models")
-
-    def teardown():
-        testing.tearDown()
-
-    request.addfinalizer(teardown)
-    return config
 
 
-@pytest.fixture(scope="function")
-def db_session(configuration, request):
-    """Create a session for interacting with the test database.
-
-    This uses the dbsession_factory on the configurator instance to create a
-    new database session. It binds that session to the available engine
-    and returns a new session for every call of the dummy_request object.
-    """
-    SessionFactory = configuration.registry["dbsession_factory"]
-    session = SessionFactory()
-    engine = session.bind
-    Base.metadata.create_all(engine)
-
-    def teardown():
-        session.transaction.rollback()
-
-    return session
+def test_detail_page_returns_empty_when_empty(dummy_request):
+    """Test that the detail view returns no objects when database empty."""
+    from learning_journal.views.default import detail
+    req = dummy_request
+    req.matchdict = {"id": "1"}
+    result = detail(req)
+    assert result["entry"] is None
 
 
-@pytest.fixture
-def add_posts(dummy_request):
-    """Add multiple entries to the database."""
-    for entry in TEST_ENTRIES:
-            post = Entry(id=entry['id'], title=entry['title'], body=entry['body'], creation_date=entry['creation_date'])
-            dummy_request.dbsession.add(post)
+def test_edit_page_updates_db(dummy_request, add_models):
+    """Test that the edit view edits entries in the database."""
+    from learning_journal.views.default import edit
+    req = dummy_request
+    req.matchdict = {"id": "3"}
+    req.method = "POST"
+    req.POST["title"] = "new thing"
+    req.POST["creation_date"] = datetime.datetime(2017, 2, 24, 0, 0)
+    req.POST["body"] = "and more new things"
+    try:
+        edit(req)
+    except:
+        new_title = dummy_request.dbsession.query(Entry).get(3).title
+        assert new_title == "new thing"
 
 
-MODEL_ENTRIES = [Entry(
-    title=entry['title'],
-    body=entry['body'],
-    creation_date=entry['creation_date']
-) for entry in ENTRIES]
+def test_write_view_updates_db(dummy_request, add_models):
+    """Test that the write view adds entries to the database."""
+    from learning_journal.views.default import write
+    row_count_before_post = dummy_request.dbsession.query(Entry).count()
+    req = dummy_request
+    req.method = "POST"
+    req.POST["title"] = "a new post"
+    req.POST["title1"] = "a new subtitle"
+    req.POST["creation_date"] = datetime.datetime(2016, 12, 20, 0, 0)
+    req.POST["body"] = "a new body"
+    try:
+        write(req)
+    except:
+        row_count_after_post = dummy_request.dbsession.query(Entry).count()
+        assert row_count_after_post == row_count_before_post + 1
 
 
-@pytest.fixture
-def dummy_request(db_session, method="GET"):
-    """Instantitate an HTTP request and database session for testing"""
-    request = testing.DummyRequest()
-    request.method = method
-    request.dbsession = db_session
-    return request
+
+#Functional test stuff.
 
 @pytest.fixture
 def testapp(request):
@@ -193,7 +217,7 @@ def testapp(request):
     session = session_factory()
     engine = session.bind
     Base.metadata.drop_all(engine)
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(engine)
 
     def tearDown():
         Base.metadata.drop_all(engine)
@@ -213,32 +237,6 @@ def fill_the_db(testapp):
             dbsession.add(post)
     return dbsession
 
-def test_database_empty_but_exists(db_session):
-    """Test that app connects to database, which is empty here."""
-    assert len(db_session.query(Entry).all()) == 0
-
-def test_my_view(dummy_request):
-    """Test the homepage view return data from database."""
-    from learning_journal.views.default import my_view
-    dummy_request.dbsession.add(Entry(title="one", id='1'))
-    result = my_view(dummy_request) # views commit changes to the DB
-    assert result["entries"][0].title == "one"
-
-def test_detail_view(dummy_request, db_session):
-    """Test the detail view."""
-    from learning_journal.views.default import detail
-    dummy_request.matchdict['id'] = '1'
-    result = detail(dummy_request)
-    entry = dummy_request.dbsession.query(Entry).get(1)
-    assert result['entry'] == entry
-
-def test_model_gets_added(db_session):
-    """Test the model gets added to the database."""
-    assert len(db_session.query(Entry).all()) == 1
-    model = Entry(title="new title for new test", body="new body for new test",
-        creation_date=datetime.datetime(2017, 1, 1, 0, 0), id="8675309")
-    db_session.add(model)
-    assert len(db_session.query(Entry).all()) == 2
 
 def test_non_authenticated_user_cannot_access_write_view(testapp):
     """Test that accessing create new post is forbidden without auth."""
