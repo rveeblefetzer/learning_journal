@@ -21,6 +21,7 @@ requires = [
     'waitress',
     'tox',
     'psycopg2',
+    'passlib',
     ]
 
 tests_require = [
@@ -28,6 +29,7 @@ tests_require = [
     'pytest',  # includes virtualenv
     'pytest-cov',
     ]
+
 
 setup(name='learning_journal',
       version='0.0',
@@ -46,9 +48,6 @@ setup(name='learning_journal',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      extras_require={
-          'testing': tests_require,
-      },
       install_requires=requires,
       entry_points="""\
       [paste.app_factory]
@@ -56,4 +55,7 @@ setup(name='learning_journal',
       [console_scripts]
       initialize_db = learning_journal.scripts.initializedb:main
       """,
+      extras_require={
+          'testing': tests_require,
+      },
       )

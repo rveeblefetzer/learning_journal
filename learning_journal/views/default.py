@@ -2,14 +2,42 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import exception_response
+from pyramid.security import remember, forget
+from learning_journal.security import check_credentials
+
+
 import time
+import datetime
 
 from sqlalchemy.exc import DBAPIError
 
 from ..models import Entry
 
 
-@view_config(route_name='homepage', renderer='../templates/index.jinja2')
+@view_config(route_name='login', renderer='../templates/login.jinja2', permission="view")
+def login_view(request):
+    """Handle the login view."""
+    if request.POST:
+        username = request.POST["username"]
+        password = request.POST["password"]
+        if check_credentials(username, password):
+            auth_head = remember(request, username)
+            return HTTPFound(
+                location=request.route_url("homepage"),
+                headers=auth_head
+            )
+
+    return {}
+
+
+@view_config(route_name='logout')
+def logout_view(request):
+    """Handle logging the user out."""
+    headers = forget(request)
+    return HTTPFound(request.route_url("homepage"), headers=headers)
+
+
+@view_config(route_name='homepage', renderer='../templates/index.jinja2', permission="view")
 def my_view(request):
     """View for homepage, listing journal entries from database."""
     try:
@@ -19,18 +47,16 @@ def my_view(request):
     return {'entries': entries}
 
 
-@view_config(route_name="write", renderer="../templates/write.jinja2")
+@view_config(route_name="write", renderer="../templates/write.jinja2", permission="amend")
 def write(request):
     if request.method == "POST":
         new_title = request.POST["title"]
         new_body = request.POST["body"]
-        new_date = time.strftime("%m/%d/%Y")
-        new_id = request.POST['id']
-        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date, id=new_id)
+        new_date = datetime.date.today()
+        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
 
         request.dbsession.add(new_entry)
-
-        return {}
+        return HTTPFound(location=request.route_url('homepage'))
     return {}
 
 
@@ -42,7 +68,7 @@ def detail(request):
     return {"entry": the_entry}
 
 
-@view_config(route_name="edit", renderer="../templates/editentry.jinja2")
+@view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="amend")
 def edit(request):
     """View for page for editing entries, displaying a form."""
     try:
@@ -50,10 +76,10 @@ def edit(request):
         if request.method == "POST":
             title = request.POST['title']
             body = request.POST['body']
-            creation_date = time.strftime("%m/%d/%Y")
+            creation_date = datetime.date.today()
             query = request.dbsession.query(Entry)
             post_dict = query.filter(Entry.id == request.matchdict['id'])
-            post_dict.update({'title': title, 'body': body, 'creation_date': creation_date,})
+            post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})
             return HTTPFound(location=request.route_url('homepage'))
         return {'entries': data}
     except DBAPIError:
@@ -61,11 +87,11 @@ def edit(request):
     query = request.dbsession.query(Entry)
     post_dict = query.filter(Entry.id == request.matchdict['id']).first()
     if post_dict is not None:
-        a = {
+        edited_post = {
             'title': post_dict.title,
             'creation_date': post_dict.creation_date,
             'body': post_dict.body}
-        return {'post': a}
+        return {'post': edited_post}
     raise exception_response(404)
 
 
