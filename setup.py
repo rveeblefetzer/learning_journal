@@ -19,7 +19,17 @@ requires = [
     'transaction',
     'zope.sqlalchemy',
     'waitress',
-]
+    'tox',
+    'psycopg2',
+    'passlib',
+    ]
+
+tests_require = [
+    'WebTest >= 1.3.1',  # py3 compat
+    'pytest',  # includes virtualenv
+    'pytest-cov',
+    ]
+
 
 setup(name='learning_journal',
       version='0.0',

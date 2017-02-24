@@ -34,9 +34,18 @@
                     <li>
                         <a href="{{ request.route_url('homepage') }}">Home</a>
                     </li>
-                    <li>
-                        <a href="{{ request.route_url('write') }}">Write Something</a>
-                    </li>
+                      {% if request.authenticated_userid %}
+                      <li>
+                        <a href="{{ request.route_url('write')}}" class="add_entry">Write Something</a>
+                      </li>
+                      <li>
+                        <a href="{{ request.route_url('logout')}}" class="add_entry">Logout</a>
+                      </li>
+                      {% else %}
+                      <li>
+                        <a href="{{ request.route_url('login') }}">Log In</a>
+                      </li>
+                      {% endif %}
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
