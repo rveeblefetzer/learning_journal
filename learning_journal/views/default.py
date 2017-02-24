@@ -7,6 +7,7 @@ from learning_journal.security import check_credentials
 
 
 import time
+import datetime
 
 from sqlalchemy.exc import DBAPIError
 
@@ -49,13 +50,16 @@ def my_view(request):
 @view_config(route_name="write", renderer="../templates/write.jinja2", permission="amend")
 def write(request):
     if request.method == "POST":
-        new_title = request.POST["title"]
-        new_body = request.POST["body"]
-        new_date = time.strftime("%m/%d/%Y")
-        new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
+        if request.POST["title"] and request.POST["body"]:
+            new_title = request.POST["title"]
+            new_body = request.POST["body"]
+            new_date = datetime.date.today()
+            new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
 
-        request.dbsession.add(new_entry)
-        return HTTPFound(location=request.route_url('homepage'))
+            request.dbsession.add(new_entry)
+            return HTTPFound(location=request.route_url('homepage'))
+        else:
+            return HTTPFound(location=request.route_url('write'))
     return {}
 
 
@@ -70,29 +74,20 @@ def detail(request):
 @view_config(route_name="edit", renderer="../templates/editentry.jinja2", permission="amend")
 def edit(request):
     """View for page for editing entries, displaying a form."""
+    the_id = request.matchdict["id"]
     try:
-        data = request.dbsession.query(Entry).get(request.matchdict['id'])
+        entry = request.dbsession.query(Entry).get(the_id)
         if request.method == "POST":
-            title = request.POST['title']
-            body = request.POST['body']
-            creation_date = time.strftime("%m/%d/%Y")
-            query = request.dbsession.query(Entry)
-            post_dict = query.filter(Entry.id == request.matchdict['id'])
-            post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})
-            return HTTPFound(location=request.route_url('homepage'))
-        return {'entries': data}
+            entry.title = request.POST["title"]
+            entry.creation_date = request.POST["creation_date"]
+            entry.body = request.POST["body"]
+
+            request.dbsession.flush()
+            return HTTPFound(request.route_url("hompage"))
+
     except DBAPIError:
         return Response(db_err_msg, content_type='text/plain', status=500)
-    query = request.dbsession.query(Entry)
-    post_dict = query.filter(Entry.id == request.matchdict['id']).first()
-    if post_dict is not None:
-        edited_post = {
-            'title': post_dict.title,
-            'creation_date': post_dict.creation_date,
-            'body': post_dict.body}
-        return {'post': edited_post}
-    raise exception_response(404)
-
+    return {"entry": entry}
 
 db_err_msg = """\
 Pyramid is having a problem using your SQL database.  The problem
