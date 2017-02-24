@@ -37,6 +37,7 @@ TEST_ENTRIES = [
 
 # Unit tests
 
+
 @pytest.fixture(scope="session")
 def configuration(request):
     """Set up a Configurator instance.
@@ -237,13 +238,46 @@ def fill_the_db(testapp):
             dbsession.add(post)
     return dbsession
 
+@pytest.fixture
+def set_auth_credentials():
+    """Make a username, password for testing."""
+    import os
+    from passlib.apps import custom_app_context as pwd_context
 
-def test_non_authenticated_user_cannot_access_write_view(testapp):
-    """Test that accessing create new post is forbidden without auth."""
+    os.environ["AUTH_USERNAME"] = "tastetest"
+    os.environ["AUTH_PASSWORD"] = pwd_context.hash("Frank'sRedHot")
+
+def test_user_can_log_in(set_auth_credentials, testapp):
+    """Test that a user can log in with correct credentials."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    assert "auth_tkt" in testapp.cookies
+
+def test_anonymous_user_cant_hit_write_view(testapp):
+    """Test that non-authorised users can't access write page."""
     response = testapp.get('/journal/write', status=403)
     assert response.status_code == 403
 
-def test_non_authenticated_user_cannot_access_edit_view(testapp):
-    """Test that accessing create new post is forbidden without auth."""
+def test_anonymous_user_cant_hit_edit_view(testapp):
+    """Test that nonauthorised users can't edit posts."""
     response = testapp.get('/journal/1/editentry', status=403)
     assert response.status_code == 403
+
+def test_check_credentials_passes_with_good_creds(set_auth_credentials):
+    """Test that check credentials works with valid creds."""
+    from learning_journal.security import check_credentials
+    assert check_credentials("tastetest", "Frank'sRedHot")
+
+
+def test_check_credentials_fails_with_bad_password(set_auth_credentials):
+    """Test that check credential fails on bad password."""
+    from learning_journal.security import check_credentials
+    assert not check_credentials("tastetest", "badpass")
+
+
+def test_check_credentials_fails_with_bad_username(set_auth_credentials):
+    """Test that check credential fails on bad username."""
+    from learning_journal.security import check_credentials
+    assert not check_credentials("Crystal", "Frank'sRedHot")
