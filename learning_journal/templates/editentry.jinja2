@@ -21,10 +21,10 @@
     <div class="col-md-10">
     <h1>Edit journal entry</h1>
         <section class="edit-journal-entry">
-        <form action="{{ request.route_url('edit', id=entries.id) }}" method="POST">
+        <form action="{{ request.route_url('edit', id=entry.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ request.session.get_csrf_token() }}" />
-        <input type="text" class="form-control" name="title" value="{{ entries.title }}">
-        <textarea class="form-control" rows="10" cols="40" name="body">{{ entries.body }}</textarea>
+        <input type="text" class="form-control" name="title" value="{{ entry.title }}">
+        <textarea class="form-control" rows="10" cols="40" name="body">{{ entry.body }}</textarea>
         <button type="submit">Submit</button>
         </form>
         </section>

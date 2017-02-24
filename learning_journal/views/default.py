@@ -7,7 +7,7 @@ import datetime
 from ..models import Entry
 
 
-@view_config(route_name='login', renderer='../templates/login.jinja2', permission="view")
+@view_config(route_name='login', renderer='../templates/login.jinja2', require_csrf=False)
 def login_view(request):
     """Handle the login view."""
     if request.POST:
@@ -69,11 +69,10 @@ def edit(request):
     entry = request.dbsession.query(Entry).get(the_id)
     if request.method == "POST":
         entry.title = request.POST["title"]
-        entry.creation_date = request.POST["creation_date"]
         entry.body = request.POST["body"]
 
         request.dbsession.flush()
-        return HTTPFound(request.route_url("hompage"))
+        return HTTPFound(request.route_url("homepage"))
     return {"entry": entry}
 
 db_err_msg = """\
