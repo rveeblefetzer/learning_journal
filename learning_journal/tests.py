@@ -9,35 +9,36 @@ from learning_journal.models import (
 )
 from learning_journal.models.meta import Base
 from learning_journal.scripts.initializedb import ENTRIES
+from pyramid.config import Configurator
+import datetime
 
 MODEL_ENTRIES = [Entry(
     title=entry['title'],
     body=entry['body'],
     creation_date=entry['creation_date']
 ) for entry in ENTRIES]
-from pyramid.config import Configurator
-import time
+
 
 TEST_ENTRIES = [
     {'title': "Test 1",
      'body': 'Test body: first entry',
-     'creation_date': '12/31/2016',
+     'creation_date': datetime.datetime(2016, 12, 24, 0, 0),
      'id': 1},
     {'title': "Test 2",
      'body': 'Test body: second entry',
-     'creation_date': '1/1/2107',
+     'creation_date': datetime.datetime(2017, 1, 1, 0, 0),
      'id': 2},
     {'title': "Test 3",
      'body': 'Test body: third entry',
-     'creation_date': '1/2/2107',
+     'creation_date': datetime.datetime(2017, 1, 2, 0, 0),
      'id': 3},
     {'title': "Test 4",
      'body': 'Test body: fourth entry',
-     'creation_date': '1/3/2107',
+     'creation_date': datetime.datetime(2017, 1, 3, 0, 0),
      'id': 4},
     {'title': "Test 5",
      'body': 'Test body: fifth entry',
-     'creation_date': '1/4/2107',
+     'creation_date': datetime.datetime(2017, 1, 4, 0, 0),
      'id': 5},
 ]
 
@@ -235,7 +236,7 @@ def test_model_gets_added(db_session):
     """Test the model gets added to the database."""
     assert len(db_session.query(Entry).all()) == 1
     model = Entry(title="new title for new test", body="new body for new test",
-        creation_date="test time!", id="8675309")
+        creation_date=datetime.datetime(2017, 1, 1, 0, 0), id="8675309")
     db_session.add(model)
     assert len(db_session.query(Entry).all()) == 2
 

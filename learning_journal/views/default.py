@@ -7,6 +7,7 @@ from learning_journal.security import check_credentials
 
 
 import time
+import datetime
 
 from sqlalchemy.exc import DBAPIError
 
@@ -51,7 +52,7 @@ def write(request):
     if request.method == "POST":
         new_title = request.POST["title"]
         new_body = request.POST["body"]
-        new_date = time.strftime("%m/%d/%Y")
+        new_date = datetime.date.today()
         new_entry = Entry(title=new_title, body=new_body, creation_date=new_date)
 
         request.dbsession.add(new_entry)
@@ -75,7 +76,7 @@ def edit(request):
         if request.method == "POST":
             title = request.POST['title']
             body = request.POST['body']
-            creation_date = time.strftime("%m/%d/%Y")
+            creation_date = datetime.date.today()
             query = request.dbsession.query(Entry)
             post_dict = query.filter(Entry.id == request.matchdict['id'])
             post_dict.update({'title': title, 'body': body, 'creation_date': creation_date})

@@ -55,4 +55,7 @@ setup(name='learning_journal',
       [console_scripts]
       initialize_db = learning_journal.scripts.initializedb:main
       """,
+      extras_require={
+          'testing': tests_require,
+      },
       )
