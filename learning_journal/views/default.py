@@ -1,16 +1,9 @@
-from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import exception_response
 from pyramid.security import remember, forget
 from learning_journal.security import check_credentials
-
-
-import time
 import datetime
-
-from sqlalchemy.exc import DBAPIError
-
 from ..models import Entry
 
 
@@ -40,15 +33,13 @@ def logout_view(request):
 @view_config(route_name='homepage', renderer='../templates/index.jinja2', permission="view")
 def my_view(request):
     """View for homepage, listing journal entries from database."""
-    try:
-        entries = request.dbsession.query(Entry).all()
-    except DBAPIError:
-        return Response(db_err_msg, content_type='text/plain', status=500)
+    entries = request.dbsession.query(Entry).all()
     return {'entries': entries}
 
 
 @view_config(route_name="write", renderer="../templates/write.jinja2", permission="amend")
 def write(request):
+    """View for creating a new journal entry."""
     if request.method == "POST":
         if request.POST["title"] and request.POST["body"]:
             new_title = request.POST["title"]
@@ -65,7 +56,7 @@ def write(request):
 
 @view_config(route_name="detail", renderer="../templates/entry.jinja2")
 def detail(request):
-    """VIew for individual entry."""
+    """View for individual entry."""
     query = request.dbsession.query(Entry)
     the_entry = query.filter(Entry.id == request.matchdict['id']).first()
     return {"entry": the_entry}
@@ -75,18 +66,14 @@ def detail(request):
 def edit(request):
     """View for page for editing entries, displaying a form."""
     the_id = request.matchdict["id"]
-    try:
-        entry = request.dbsession.query(Entry).get(the_id)
-        if request.method == "POST":
-            entry.title = request.POST["title"]
-            entry.creation_date = request.POST["creation_date"]
-            entry.body = request.POST["body"]
+    entry = request.dbsession.query(Entry).get(the_id)
+    if request.method == "POST":
+        entry.title = request.POST["title"]
+        entry.creation_date = request.POST["creation_date"]
+        entry.body = request.POST["body"]
 
-            request.dbsession.flush()
-            return HTTPFound(request.route_url("hompage"))
-
-    except DBAPIError:
-        return Response(db_err_msg, content_type='text/plain', status=500)
+        request.dbsession.flush()
+        return HTTPFound(request.route_url("hompage"))
     return {"entry": entry}
 
 db_err_msg = """\
