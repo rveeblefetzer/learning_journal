@@ -27,11 +27,14 @@
                         <h1 class="detail-title">{{ entry.title }}</h1>
                             <article class="detail-body">{{ entry.body }}</article>
                             <div class="detail-date">Posted on {{ entry.creation_date }}</div>
+                            {% if request.authenticated_userid %}
                             <p class="text-right">
                             <a href="{{ request.route_url('edit', id=entry.id) }}">
                                 Edit entry
                             </a>
-                            </p><hr>
+                            </p>
+                            {% endif %}
+                            <hr>
                     </section>
                 </div>
             </div>
