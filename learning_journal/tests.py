@@ -297,6 +297,30 @@ def test_list_view_shows_correct_no_of_entries(testapp, fill_the_db):
     assert len(TEST_ENTRIES) == len(html.findAll("article"))
 
 
+def test_logged_in_user_gets_csrf_token_for_write_view(set_auth_credentials, testapp):
+    """Test that logged-in user has a CSRF token for write view."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/journal/write')
+    html = response.html
+    csrf_token = html.find_all('input')[0]['value']
+    assert csrf_token
+
+
+def test_logged_in_user_gets_csrf_token_for_edit_view(set_auth_credentials, testapp):
+    """Test that logged-in user has a CSRF token for edit view."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/journal/1/editentry')
+    html = response.html
+    csrf_token = html.find_all('input')[0]['value']
+    assert csrf_token
+
+
 def test_user_can_add_new_entry(set_auth_credentials, testapp):
     """Test that logged-in user can write a new journal entry."""
     testapp.post("/login", params={
