@@ -30,7 +30,7 @@ def logout_view(request):
     return HTTPFound(request.route_url("homepage"), headers=headers)
 
 
-@view_config(route_name='homepage', renderer='../templates/index.jinja2', permission="view")
+@view_config(route_name='homepage', renderer='../templates/index.jinja2')
 def my_view(request):
     """View for homepage, listing journal entries from database."""
     entries = request.dbsession.query(Entry).all()
