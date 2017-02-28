@@ -13,7 +13,6 @@ class TheRoot(object):
 
     __acl__ = [
         (Allow, Authenticated, 'amend'),
-        (Allow, Everyone, 'view'),
     ]
 
 
@@ -24,12 +23,8 @@ def check_credentials(username, password):
     is_authenticated = False
     if stored_username and stored_password:
         if username == stored_username:
-            try:
-                is_authenticated = pwd_context.verify(password, stored_password)
-            except ValueError:
-                # ValueError is raised if the stored password is not hashed or if the salt is improper
-                pass
-    return is_authenticated
+            is_authenticated = pwd_context.verify(password, stored_password)
+            return is_authenticated
 
 def includeme(config):
     """Pyramid security configuration."""
@@ -42,5 +37,8 @@ def includeme(config):
     authz_policy = ACLAuthorizationPolicy()
     config.set_authorization_policy(authz_policy)
     config.set_root_factory(TheRoot)
-    config.set_default_permission('view')
+    session_secret = os.environ.get('SESSION_SECRET', 'Crystal')
+    session_factory = SignedCookieSessionFactory(session_secret)
+    config.set_session_factory(session_factory)
+    config.set_default_csrf_options(require_csrf=True)
 

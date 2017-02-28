@@ -37,6 +37,7 @@ TEST_ENTRIES = [
 
 # Unit tests
 
+
 @pytest.fixture(scope="session")
 def configuration(request):
     """Set up a Configurator instance.
@@ -55,6 +56,7 @@ def configuration(request):
         'sqlalchemy.url': 'postgres://hotsauce@localhost:5432/learning_journal'
     })
     config.include(".models")
+    config.include(".routes")
 
     def teardown():
         testing.tearDown()
@@ -112,43 +114,32 @@ def test_database_empty_but_exists(db_session):
 def test_adding_model(db_session):
     """Test the model gets added to the database."""
     assert len(db_session.query(Entry).all()) == 0
-    model = Entry(title="new title for new test", body="new body for new test",
-        creation_date=datetime.datetime(2017, 1, 1, 0, 0), id="8675309")
+    model = Entry(title="new title for test", body="new body for test",
+                  creation_date=datetime.datetime(2017, 1, 1, 0, 0), id="99")
     db_session.add(model)
     assert len(db_session.query(Entry).all()) == 1
 
 
-def test_my_view(dummy_request):
+def test_homepage_returns_empty_when_empty(dummy_request):
+    """Test that the list view returns no journal entries if empty."""
+    from learning_journal.views.default import homepage
+    result = homepage(dummy_request)
+    assert len(result["entries"]) == 0
+
+
+def test_homepage(dummy_request):
     """Test the homepage view returns data from database."""
-    from .views.default import my_view
-    dummy_request.dbsession.add(Entry(title="one", id='1'))
-    result = my_view(dummy_request) # views commit changes to the DB
+    from .views.default import homepage
+    dummy_request.dbsession.add(Entry(title="one", body="body 1", id='1'))
+    result = homepage(dummy_request)
     assert result["entries"][0].title == "one"
 
 
-def test_homepage_returns_empty_when_empty(dummy_request):
-    """Test that the list view returns no objects in the expenses iterable."""
-    from learning_journal.views.default import my_view
-    result = my_view(dummy_request)
-    assert len(result["entries"]) == 0
-
 def test_homepage_returns_existing_entries(dummy_request, add_models):
     """Test that the list view serves up journal entries."""
-    from learning_journal.views.default import my_view
-    result = my_view(dummy_request)
+    from learning_journal.views.default import homepage
+    result = homepage(dummy_request)
     assert len(result["entries"]) == len(TEST_ENTRIES)
-
-
-def test_detail_view(dummy_request, db_session):
-    """Test the detail view."""
-    from .views.default import detail
-    dummy_request.method = "POST"
-    dummy_request.POST["title"] = "This is a Title"
-    dummy_request.POST["body"] = "And this is the body. TEST!"
-    dummy_request.matchdict['id'] = '1'
-    result = detail(dummy_request)
-    entry = dummy_request.dbsession.query(Entry).get(1)
-    assert result['entry'] == entry
 
 
 def test_detail_page_returns_empty_when_empty(dummy_request):
@@ -160,6 +151,18 @@ def test_detail_page_returns_empty_when_empty(dummy_request):
     assert result["entry"] is None
 
 
+def test_detail_view(dummy_request, db_session):
+    """Test the detail view returns requested body text."""
+    from .views.default import detail
+    dummy_request.method = "POST"
+    dummy_request.POST["title"] = "This is a Title"
+    dummy_request.POST["body"] = "And this is the body. TEST!"
+    dummy_request.matchdict['id'] = '1'
+    result = detail(dummy_request)
+    entry = dummy_request.dbsession.query(Entry).get(1)
+    assert result['entry'] == entry
+
+
 def test_edit_page_updates_db(dummy_request, add_models):
     """Test that the edit view edits entries in the database."""
     from learning_journal.views.default import edit
@@ -169,11 +172,9 @@ def test_edit_page_updates_db(dummy_request, add_models):
     req.POST["title"] = "new thing"
     req.POST["creation_date"] = datetime.datetime(2017, 2, 24, 0, 0)
     req.POST["body"] = "and more new things"
-    try:
-        edit(req)
-    except:
-        new_title = dummy_request.dbsession.query(Entry).get(3).title
-        assert new_title == "new thing"
+    edit(req)
+    new_title = dummy_request.dbsession.query(Entry).get(3).title
+    assert new_title == "new thing"
 
 
 def test_write_view_updates_db(dummy_request, add_models):
@@ -194,35 +195,30 @@ def test_write_view_updates_db(dummy_request, add_models):
 
 
 
-#Functional test stuff.
+#Functional tests.
 
 @pytest.fixture
-def testapp(request):
-    """Create an app instance for testing."""
+def testapp():
+    """Create an instance of webtests TestApp for testing routes.
+    With the alchemy scaffold we need to add to our test application the
+    setting for a database to be used for the models.
+    We have to then set up the database by starting a database session.
+    Finally we have to create all of the necessary tables that our app
+    normally uses to function.
+    The scope of the fixture is function-level, so every test will get a new
+    test application.
+    """
     from webtest import TestApp
     from learning_journal import main
-    app = main({})
-    def main(global_config, **settings):
-        """Return a Pyramid WSGI application."""
-        config = Configurator(settings=settings)
-        config.include('pyramid_jinja2')
-        config.include('learning_journal.models')
-        config.include('learning_journal.routes')
-        config.include('learning_journal.security')
-        config.scan()
-        return config.make_wsgi_app()
 
+    app = main({}, **{'sqlalchemy.url': 'sqlite:///:memory:'})
     testapp = TestApp(app)
-    session_factory = app.registry["dbsession_factory"]
-    session = session_factory()
-    engine = session.bind
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
 
-    def tearDown():
-        Base.metadata.drop_all(engine)
+    SessionFactory = app.registry["dbsession_factory"]
+    engine = SessionFactory().bind
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
-    request.addfinalizer(tearDown)
     return testapp
 
 
@@ -232,18 +228,150 @@ def fill_the_db(testapp):
     SessionFactory = testapp.app.registry["dbsession_factory"]
     with transaction.manager:
         dbsession = get_tm_session(SessionFactory, transaction.manager)
-        for entry in ENTRIES:
+        for entry in TEST_ENTRIES:
             post = Entry(title=entry["title"], creation_date=entry["creation_date"], body=entry["body"])
             dbsession.add(post)
     return dbsession
 
 
-def test_non_authenticated_user_cannot_access_write_view(testapp):
-    """Test that accessing create new post is forbidden without auth."""
+@pytest.fixture
+def set_auth_credentials():
+    """Make a username, password for testing."""
+    import os
+    from passlib.apps import custom_app_context as pwd_context
+
+    os.environ["AUTH_USERNAME"] = "tastetest"
+    os.environ["AUTH_PASSWORD"] = pwd_context.hash("Frank'sRedHot")
+
+
+def test_user_can_log_in(set_auth_credentials, testapp):
+    """Test that a user can log in with correct credentials."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    assert "auth_tkt" in testapp.cookies
+
+
+def test_anonymous_user_cant_hit_write_view(testapp):
+    """Test that non-authorised users can't access write page."""
     response = testapp.get('/journal/write', status=403)
     assert response.status_code == 403
 
-def test_non_authenticated_user_cannot_access_edit_view(testapp):
-    """Test that accessing create new post is forbidden without auth."""
+
+def test_anonymous_user_cant_hit_edit_view(testapp):
+    """Test that nonauthorised users can't edit posts."""
     response = testapp.get('/journal/1/editentry', status=403)
     assert response.status_code == 403
+
+
+def test_check_credentials_passes_with_good_creds(set_auth_credentials):
+    """Test that check credentials works with valid creds."""
+    from learning_journal.security import check_credentials
+    assert check_credentials("tastetest", "Frank'sRedHot")
+
+
+def test_check_credentials_fails_with_bad_password(set_auth_credentials):
+    """Test that check credential fails on bad password."""
+    from learning_journal.security import check_credentials
+    assert not check_credentials("tastetest", "badpass")
+
+
+def test_check_credentials_fails_with_bad_username(set_auth_credentials):
+    """Test that check credential fails on bad username."""
+    from learning_journal.security import check_credentials
+    assert not check_credentials("Crystal", "Frank'sRedHot")
+
+
+def test_list_view_shows_entries(testapp, fill_the_db):
+    """Test that list view has test entries showing."""
+    response = testapp.get("/")
+    html = response.html
+    assert b"Test 1" in response.body
+
+
+def test_list_view_shows_correct_no_of_entries(testapp, fill_the_db):
+    """Test that list view has test entries showing."""
+    response = testapp.get("/")
+    html = response.html
+    assert len(TEST_ENTRIES) == len(html.findAll("article"))
+
+
+def test_user_can_add_new_entry(set_auth_credentials, testapp):
+    """Test that logged-in user can write a new journal entry."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/journal/write')
+    html = response.html
+    csrf_token = html.find_all('input')[0]['value']
+    testapp.post('/journal/write', params={
+        'title': "gonna test for this", 'body': "new body", 'csrf_token': csrf_token},
+        status=302)
+    next_response = testapp.get("/")
+    html = next_response.html
+    assert b'gonna test for this' in html.findAll('h2')[0].encode()
+
+
+def test_user_can_edit_entry(set_auth_credentials, testapp, fill_the_db):
+    """Test that logged-in user can edit a journal entry."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/journal/1/editentry')
+    html = response.html
+    csrf_token = html.findAll('input')[0]['value']
+    testapp.post('/journal/1/editentry', params={
+        'title': "gonna test for this", 'body': "new body", 'csrf_token': csrf_token},
+        status=302)
+    next_response = testapp.get("/journal/1")
+    html = next_response.html
+    assert b'gonna test for this' in html.findAll('h1')[1].encode()
+
+def test_logging_in_redirects_home(set_auth_credentials, testapp):
+    """Test that user redirected to home after logging in."""
+    response = testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    assert response.status_code == 302
+    assert response.follow().status_code == 200
+
+
+def test_bad_login_refreshes(set_auth_credentials, testapp):
+    """Test that user redirected to home after logging in."""
+    response = testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "notahotsauce"
+    })
+    assert response.status_code == 200
+
+
+def test_logging_out_redircts_home(set_auth_credentials, testapp):
+    """Test that user redirected to home after logging out."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/logout')
+    assert response.status_code == 302
+
+
+
+def test_user_can_add_new_entry(set_auth_credentials, testapp):
+    """Test that logged-in user can write a new journal entry."""
+    testapp.post("/login", params={
+        "username": "tastetest",
+        "password": "Frank'sRedHot"
+    })
+    response = testapp.get('/journal/write')
+    html = response.html
+    csrf_token = html.find_all('input')[0]['value']
+    testapp.post('/journal/write', params={
+        'title': "gonna test for this", 'body': "new body", 'csrf_token': csrf_token},
+        status=302)
+    next_response = testapp.get("/")
+    html = next_response.html
+    assert b'gonna test for this' in html.findAll('h2')[0].encode()
