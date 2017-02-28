@@ -24,12 +24,8 @@ def check_credentials(username, password):
     is_authenticated = False
     if stored_username and stored_password:
         if username == stored_username:
-            try:
-                is_authenticated = pwd_context.verify(password, stored_password)
-            except ValueError:
-                # ValueError is raised if the stored password is not hashed or if the salt is improper
-                pass
-    return is_authenticated
+            is_authenticated = pwd_context.verify(password, stored_password)
+            return is_authenticated
 
 def includeme(config):
     """Pyramid security configuration."""
