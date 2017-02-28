@@ -49,8 +49,6 @@ def write(request):
 
             request.dbsession.add(new_entry)
             return HTTPFound(location=request.route_url('homepage'))
-        else:
-            return HTTPFound(location=request.route_url('write'))
     return {}
 
 
@@ -74,19 +72,3 @@ def edit(request):
         request.dbsession.flush()
         return HTTPFound(request.route_url("homepage"))
     return {"entry": entry}
-
-db_err_msg = """\
-Pyramid is having a problem using your SQL database.  The problem
-might be caused by one of the following things:
-
-1.  You may need to run the "initialize_learning_journal_db" script
-    to initialize your database tables.  Check your virtual
-    environment's "bin" directory for this script and try to run it.
-
-2.  Your database server may not be running.  Check that the
-    database server referred to by the "sqlalchemy.url" setting in
-    your "development.ini" file is running.
-
-After you fix the problem, please restart the Pyramid application to
-try it again.
-"""
