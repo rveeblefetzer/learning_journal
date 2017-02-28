@@ -26,6 +26,13 @@ p {
 .font-bold {
   font-weight: 700;
 }
+.input_post_title {
+  display: block;
+  padding: 2vw;
+  margin-bottom: .5em;
+  width: 26em;
+  font-size: 1em;
+}
 .starter-template {
   margin-top: 250px;
 }
@@ -94,6 +101,12 @@ p {
   text-transform: lowercase;
   float: right;
   right: 0;
+}
+.text_area {
+  padding: 2vw;
+  width: 35em;
+  height: 30em;
+  font-size: .75em;
 }
 @media (max-width: 1199px) {
   .starter-template .content h1 {

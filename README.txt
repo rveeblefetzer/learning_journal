@@ -11,4 +11,3 @@ Getting Started
 - $VENV/bin/initialize_learning_journal_db development.ini
 
 - $VENV/bin/pserve development.ini
-

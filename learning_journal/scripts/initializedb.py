@@ -15,7 +15,16 @@ from ..models import (
     get_session_factory,
     get_tm_session,
     )
-from ..models import MyModel
+from ..models import Entry
+import datetime
+
+ENTRIES = [
+        {"id": 1, "title": "'Drinking from a firehose'", "creation_date": datetime.datetime(2016, 12, 25, 0, 0), "body": "After faceplanting on servers, here's Pyramid."},
+        {"id": 2, "title": "Spending the time.", "creation_date": datetime.datetime(2016, 12, 26, 0, 0), "body": "Reading, and doing."},
+        {"id": 3, "title": "Getting it together.", "creation_date": datetime.datetime(2016, 12, 27, 0, 0), "body": "Making headway with Pyramid."},
+        {"id": 4, "title": "Letting it jell.", "creation_date": datetime.datetime(2016, 12, 28, 0, 0), "body": "Making it solid."},
+        {"id": 5, "title": "Moving on and building", "creation_date": datetime.datetime(2016, 12, 29, 0, 0), "body": "Wrapping this, and getting ready for databases."},
+    ]
 
 
 def usage(argv):
@@ -32,6 +41,8 @@ def main(argv=sys.argv):
     options = parse_vars(argv[2:])
     setup_logging(config_uri)
     settings = get_appsettings(config_uri, options=options)
+    settings["sqlalchemy.url"] = os.environ["DATABASE_URL"]
+
 
     engine = get_engine(settings)
     Base.metadata.create_all(engine)
@@ -40,6 +51,8 @@ def main(argv=sys.argv):
 
     with transaction.manager:
         dbsession = get_tm_session(session_factory, transaction.manager)
+        for entry in ENTRIES:
+            new_entry = Entry(title=entry['title'], body=entry['body'], creation_date=entry['creation_date'])
 
-        model = MyModel(name='one', value=1)
-        dbsession.add(model)
+        dbsession.add(new_entry)
+

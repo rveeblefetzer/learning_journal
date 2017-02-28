@@ -1,0 +1,55 @@
+{% extends "layout.jinja2" %}
+{% block title %}rickv's learning journal{% endblock %}
+
+{% block header %}
+<header  class="intro-header" style="background-image: url('{{ request.static_path('learning_journal:static/img/home-bg.jpg') }}')">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="site-heading">
+                    <h1>Index HTML</h1>
+                    <hr class="small">
+                    <span class="subheading">An index of entries.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    </header>
+
+{% endblock %}
+
+
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-preview">
+    <section id="list-journal-entries-section-on-index">
+        <h3>rickv's journal entries</h3>
+        {% if entries %}
+        {%for entry in entries | sort(reverse=True, attribute="creation_date") %}
+            <article>
+
+              <h2><a href="{{ request.route_url('detail', id=entry.id) }}">{{ entry.title }}</a></h2>
+              <span>{{entry.creation_date}}</span><br><br>
+            <hr>
+              <p>{{ entry.body }}</p>
+              <p class="text-right">
+                  <a href="{{ request.route_url('detail', id=entry.id) }}">
+                      go to post...
+                  </a>
+              </p><hr>
+            </article>
+          {%endfor%}
+        {%endif%}
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="{{ request.route_url('homepage') }}">Home</a></li>
+            <li><a href="{{ request.route_url('write') }}">New Post</a></li>
+        </ul>
+    </section>
+    </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}
+
