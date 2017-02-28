@@ -123,7 +123,7 @@ def test_adding_model(db_session):
 def test_homepage(dummy_request):
     """Test the homepage view returns data from database."""
     from .views.default import homepage
-    dummy_request.dbsession.add(Entry(title="one", id='1'))
+    dummy_request.dbsession.add(Entry(title="one", body="body 1", id='1'))
     result = homepage(dummy_request) # views commit changes to the DB
     assert result["entries"][0].title == "one"
 
@@ -171,11 +171,9 @@ def test_edit_page_updates_db(dummy_request, add_models):
     req.POST["title"] = "new thing"
     req.POST["creation_date"] = datetime.datetime(2017, 2, 24, 0, 0)
     req.POST["body"] = "and more new things"
-    try:
-        edit(req)
-    except:
-        new_title = dummy_request.dbsession.query(Entry).get(3).title
-        assert new_title == "new thing"
+    edit(req)
+    new_title = dummy_request.dbsession.query(Entry).get(3).title
+    assert new_title == "new thing"
 
 
 def test_write_view_updates_db(dummy_request, add_models):
