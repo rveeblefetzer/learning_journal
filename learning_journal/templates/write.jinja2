@@ -22,9 +22,7 @@
         <div class="col-md-10">
             <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ request.session.get_csrf_token() }}" />
-            <label>
-              <input name="title" class="input_post_title" type="text" placeholder="Hed" required>
-            </label>
+            <input name="title" class="input_post_title" type="text" placeholder="Hed" required>
             <textarea name="body" class="text_area" rows="8" cols="40" placeholder="Write like the wind." required></textarea>
               <button type="submit">Submit</button>
             </form>

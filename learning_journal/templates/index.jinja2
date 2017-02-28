@@ -44,7 +44,7 @@
         {%endif%}
           <ul class="nav navbar-nav">
             <li class="active"><a href="{{ request.route_url('homepage') }}">Home</a></li>
-            <li><a href="/journal/write">New Post</a></li>
+            <li><a href="{{ request.route_url('write') }}">New Post</a></li>
         </ul>
     </section>
     </div>

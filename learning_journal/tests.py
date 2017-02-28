@@ -56,6 +56,7 @@ def configuration(request):
         'sqlalchemy.url': 'postgres://hotsauce@localhost:5432/learning_journal'
     })
     config.include(".models")
+    config.include(".routes")
 
     def teardown():
         testing.tearDown()
@@ -119,24 +120,24 @@ def test_adding_model(db_session):
     assert len(db_session.query(Entry).all()) == 1
 
 
-def test_my_view(dummy_request):
+def test_homepage(dummy_request):
     """Test the homepage view returns data from database."""
-    from .views.default import my_view
+    from .views.default import homepage
     dummy_request.dbsession.add(Entry(title="one", id='1'))
-    result = my_view(dummy_request) # views commit changes to the DB
+    result = homepage(dummy_request) # views commit changes to the DB
     assert result["entries"][0].title == "one"
 
 
 def test_homepage_returns_empty_when_empty(dummy_request):
     """Test that the list view returns no objects in the expenses iterable."""
-    from learning_journal.views.default import my_view
-    result = my_view(dummy_request)
+    from learning_journal.views.default import homepage
+    result = homepage(dummy_request)
     assert len(result["entries"]) == 0
 
 def test_homepage_returns_existing_entries(dummy_request, add_models):
     """Test that the list view serves up journal entries."""
-    from learning_journal.views.default import my_view
-    result = my_view(dummy_request)
+    from learning_journal.views.default import homepage
+    result = homepage(dummy_request)
     assert len(result["entries"]) == len(TEST_ENTRIES)
 
 
